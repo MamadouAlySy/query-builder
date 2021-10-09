@@ -1,0 +1,22 @@
+{
+    "name": "mamadou-aly-sy/query-builder",
+    "description": "A simple php query builder",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MamadouAlySy\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Mamadou Aly Sy",
+            "email": "sy.aly.mamadou@gmail.com"
+        }
+    ],
+    "minimum-stability": "stable",
+    "require": {}
+}
