@@ -156,10 +156,8 @@ class QueryBuilderTest extends TestCase
     {
         $process = $this->queryBuilder->create()
             ->table('user')
-            ->field('id')->int()->notNull()->primaryKey()->autoIncrement()
+            ->field('id')->int()->notNull()->primaryKey()
             ->field('username')->string()->notNull()
-            ->field('password')->string()->notNull()
-            ->field('status')->int(1)->notNull()->default(0)
             ->commit();
 
         $this->assertTrue($process);
