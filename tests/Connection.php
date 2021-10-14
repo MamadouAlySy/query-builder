@@ -12,8 +12,8 @@ class Connection implements ConnectionInterface
     public function open(): PDO
     {
         $credentials = [
-            'dsn'      => 'mysql:dbname=test;host=127.0.0.1',
-            'user'     => 'root',
+            'dsn'      => 'sqlite:sqlite3.db',
+            'user'     => '',
             'password' => '',
         ];
 
