@@ -14,21 +14,21 @@ class QueryBuilder
 {
     protected string $type;
     protected string $table;
-    protected ?ConnectionInterface $connection;
-    protected array $data             = [];
-    protected array $fields           = [];
-    protected array $conditions       = [];
-    protected ?string $currentField = null;
-    protected ?int $limit           = null;
-    protected ?int $offset          = null;
+    protected array $data = [];
+    protected array $fields = [];
+    protected ?int $limit = null;
+    protected ?int $offset = null;
     protected string $dropType = '';
+    protected array $conditions = [];
+    protected ?string $currentField = null;
+    protected ?ConnectionInterface $connection;
 
-    public function setConncetion(?ConnectionInterface $connection)
+    public function __construct(?ConnectionInterface $connection = null)
     {
         $this->connection = $connection;
     }
 
-    public function __construct(?ConnectionInterface $connection = null)
+    public function setConncetion(?ConnectionInterface $connection)
     {
         $this->connection = $connection;
     }
@@ -43,22 +43,6 @@ class QueryBuilder
     public function drop(): self
     {
         $this->type = 'drop';
-
-        return $this;
-    }
-
-    public function table(string $table): self
-    {
-        $this->table = "`{$table}`";
-        $this->dropType = 'table';
-
-        return $this;
-    }
-
-    public function database(string $table): self
-    {
-        $this->table = "`{$table}`";
-        $this->dropType = 'database';
 
         return $this;
     }
@@ -156,6 +140,13 @@ class QueryBuilder
         return $this;
     }
 
+    public function everything()
+    {
+        $this->fields = [];
+
+        return $this;
+    }
+
     public function insert(array $data) : self
     {
         $this->type   = 'insert';
@@ -183,23 +174,37 @@ class QueryBuilder
 
     public function from(string $table): self
     {
-        $this->table = $table;
+        $this->table = "`{$table}`";
 
         return $this;
     }
 
     public function into(string $table): self
     {
-        $this->table = $table;
+        return $this->from($table);
+    }
+
+    public function table(string $table): self
+    {
+        $this->from($table);
+        $this->dropType = 'table';
+
+        return $this;
+    }
+
+    public function database(string $table): self
+    {
+        $this->from($table);
+        $this->dropType = 'database';
 
         return $this;
     }
 
     public function where(string $field, string $type = 'and'): self
     {
-        $type                                       = strtoupper($type);
+        $type = strtoupper($type);
+        $this->currentField = $field;
         $this->conditions[$field]['condition-type'] = $type;
-        $this->currentField                         = $field;
 
         return $this;
     }
@@ -211,10 +216,10 @@ class QueryBuilder
 
     private function operation(string $operator, mixed $value): self
     {
-        $field                                = $this->currentField;
+        $field = $this->currentField;
+        $this->data["c$field"] = $value;
+        $this->conditions[$field]['value'] = $value;
         $this->conditions[$field]['operator'] = $operator;
-        $this->conditions[$field]['value']    = $value;
-        $this->data["c$field"]                = $value;
 
         return $this;
     }
@@ -303,7 +308,7 @@ class QueryBuilder
             $this->type === 'update' => $this->getUpdateSqlQuery(),
             $this->type === 'delete' => $this->getDeleteSqlQuery(),
             $this->type === 'drop' => $this->getDropSqlQuery(),
-            default=> ''
+            default => ''
         };
 
         return trim($sql) . ';';

@@ -27,7 +27,7 @@ class QueryBuilderTest extends TestCase
 
         $this->assertEquals(
             $query->getSql(),
-            'INSERT INTO user(`name`, `age`) VALUES(:name, :age);'
+            'INSERT INTO `user`(`name`, `age`) VALUES(:name, :age);'
         );
     }
 
@@ -36,9 +36,10 @@ class QueryBuilderTest extends TestCase
         $query = $this->queryBuilder
             ->from('user')
             ->select()
+            ->everything()
             ->getQuery();
 
-        $this->assertEquals($query->getSql(), 'SELECT * FROM user;');
+        $this->assertEquals($query->getSql(), 'SELECT * FROM `user`;');
     }
 
     public function testSimpleSelectQueryWithLimitAndOffset()
@@ -50,7 +51,7 @@ class QueryBuilderTest extends TestCase
             ->select()
             ->getQuery();
 
-        $this->assertEquals($query->getSql(), 'SELECT * FROM user LIMIT 10 OFFSET 5;');
+        $this->assertEquals($query->getSql(), 'SELECT * FROM `user` LIMIT 10 OFFSET 5;');
     }
 
     public function testSelectQueryWithConditions()
@@ -64,7 +65,7 @@ class QueryBuilderTest extends TestCase
 
         $this->assertEquals(
             $query->getSql(),
-            'SELECT * FROM user WHERE id > :cid OR name = :cname;'
+            'SELECT * FROM `user` WHERE id > :cid OR name = :cname;'
         );
 
         $this->assertEquals(
@@ -86,7 +87,7 @@ class QueryBuilderTest extends TestCase
 
         $this->assertEquals(
             $query->getSql(),
-            'UPDATE user SET name = :name WHERE id = :cid;'
+            'UPDATE `user` SET name = :name WHERE id = :cid;'
         );
 
         $this->assertEquals(
@@ -108,7 +109,7 @@ class QueryBuilderTest extends TestCase
 
         $this->assertEquals(
             $query->getSql(),
-            'DELETE FROM user WHERE id = :cid;'
+            'DELETE FROM `user` WHERE id = :cid;'
         );
 
         $this->assertEquals(
@@ -141,9 +142,10 @@ class QueryBuilderTest extends TestCase
 
         $this->assertEquals(
             $query->getParameters(),
-            ['username' => 'mamadou',]
+            ['username' => 'mamadou']
         );
     }
+    
     public function testCanCommitQuery()
     {
         $process = $this->queryBuilder->create()
