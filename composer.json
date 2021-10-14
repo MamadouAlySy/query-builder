@@ -11,6 +11,11 @@
             "MamadouAlySy\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "MamadouAlySy\\Tests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "Mamadou Aly Sy",

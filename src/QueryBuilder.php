@@ -4,16 +4,149 @@ declare (strict_types = 1);
 
 namespace MamadouAlySy;
 
+use MamadouAlySy\Exceptions\QueryBuilderException;
+use MamadouAlySy\Interfaces\ConnectionInterface;
+use PDO;
+use PhpParser\Node\Expr\Cast\Double;
+use stdClass;
+
 class QueryBuilder
 {
     protected string $type;
     protected string $table;
+    protected ?ConnectionInterface $connection;
     protected array $data             = [];
     protected array $fields           = [];
     protected array $conditions       = [];
-    protected  ? string $currentField = null;
-    protected  ? int $limit           = null;
-    protected  ? int $offset          = null;
+    protected ?string $currentField = null;
+    protected ?int $limit           = null;
+    protected ?int $offset          = null;
+    protected string $dropType = '';
+
+    public function setConncetion(?ConnectionInterface $connection)
+    {
+        $this->connection = $connection;
+    }
+
+    public function __construct(?ConnectionInterface $connection = null)
+    {
+        $this->connection = $connection;
+    }
+
+    public function create(): self
+    {
+        $this->type = 'create';
+
+        return $this;
+    }
+
+    public function drop(): self
+    {
+        $this->type = 'drop';
+
+        return $this;
+    }
+
+    public function table(string $table): self
+    {
+        $this->table = "`{$table}`";
+        $this->dropType = 'table';
+
+        return $this;
+    }
+
+    public function database(string $table): self
+    {
+        $this->table = "`{$table}`";
+        $this->dropType = 'database';
+
+        return $this;
+    }
+
+    protected function type(string $type, ?int $limit = null): self
+    {
+        $type = strtoupper($type);
+        $type .= $limit ? "($limit)" : '';
+
+        $this->fields[$this->currentField] = [
+            'type' => $type,
+            'behavior' => [],
+        ];
+
+        return $this;
+    }
+
+    protected function behavior(string $behavior): self
+    {
+        $this->fields[$this->currentField]['behavior'][]= $behavior;
+
+        return $this;
+    }
+
+    public function field(string $name, string $type = 'varchar', ?int $length = null, string $behavior = ''): self
+    {
+        $this->currentField = $name;
+        $this->type($type, $length)->behavior($behavior);
+
+        return $this;
+    }
+
+    public function int(int $length = 11): self
+    {
+        return $this->type('int', $length);
+    }
+
+    public function double(int $length = 11): self
+    {
+        return $this->type('double', $length);
+    }
+
+    public function string(int $length = 255): self
+    {
+        return $this->type('varchar', $length);
+    }
+
+    public function text(): self
+    {
+        return $this->type('text', null);
+    }
+
+    public function date(): self
+    {
+        return $this->type('date', null);
+    }
+
+    public function datetime(): self
+    {
+        return $this->type('datetime', null);
+    }
+
+    public function timestamp(): self
+    {
+        return $this->type('timestamp', null);
+    }
+
+    public function primaryKey(): self
+    {
+        $field = $this->currentField;
+        return $this->behavior("PRIMARY KEY");
+    }
+
+    public function notNull(): self
+    {
+        return $this->behavior('NOT NULL');
+    }
+
+    public function default(string|int|double $default): self
+    {
+        $this->data[$this->currentField] = $default;
+        return $this->behavior('DEFAULT :' . $this->currentField);
+    }
+
+    public function autoIncrement(): self
+    {
+        return $this->behavior('AUTO_INCREMENT');
+    }
 
     public function select(...$args) : self
     {
@@ -30,7 +163,6 @@ class QueryBuilder
         $this->data   = $data;
 
         return $this;
-
     }
 
     public function update(array $data) : self
@@ -40,7 +172,6 @@ class QueryBuilder
         $this->data   = $data;
 
         return $this;
-
     }
 
     public function delete(): self
@@ -48,7 +179,6 @@ class QueryBuilder
         $this->type = 'delete';
 
         return $this;
-
     }
 
     public function from(string $table): self
@@ -119,36 +249,61 @@ class QueryBuilder
         return $this->operation('<=', $value);
     }
 
-    public function limit(int $value): self
+    public function limit(?int $value): self
     {
         $this->limit = $value;
 
         return $this;
     }
 
-    public function offset(int $value): self
+    public function offset(?int $value): self
     {
         $this->offset = $value;
 
         return $this;
     }
 
-    public function getQuery(): Query
+    public function commit(): bool
     {
-        return new Query(
-            $this->getSql(),
-            $this->getData()
-        );
+        $this->verifyConnection();
+        $query = $this->connection->open()->prepare($this->getSql());
+        return $query->execute($this->getData());
     }
+
+    public function get(string $class = stdClass::class, bool $one = false): array|object
+    {
+        $this->verifyConnection();
+        $query = $this->connection->open()->prepare($this->getSql());
+        $this->reset();
+
+        if ($query == false) {
+            throw new QueryBuilderException("Unable to prepare the sql query");
+        }
+        
+        if ($query->execute($this->getData())) {
+            $query->setFetchMode(PDO::FETCH_CLASS, $class);
+            return $one ? $query->fetch() : $query->fetchAll();
+        }
+
+        return [];
+    }
+
+    public function first(string $class = stdClass::class): object
+    {
+        return $this->get($class, true);
+    }
+
 
     public function getSql()
     {
-        $sql = match(true) {
+        $sql = match (true) {
+            $this->type === 'create' => $this->getCreateSqlQuery(),
             $this->type === 'insert' => $this->getInsertSqlQuery(),
             $this->type === 'select' => $this->getSelectSqlQuery(),
             $this->type === 'update' => $this->getUpdateSqlQuery(),
             $this->type === 'delete' => $this->getDeleteSqlQuery(),
-        default=> ''
+            $this->type === 'drop' => $this->getDropSqlQuery(),
+            default=> ''
         };
 
         return trim($sql) . ';';
@@ -157,6 +312,26 @@ class QueryBuilder
     public function getData()
     {
         return $this->data;
+    }
+
+    public function getCreateSqlQuery()
+    {
+        $table  = $this->table;
+        $sql = "CREATE TABLE {$table}(";
+        
+        foreach ($this->fields as $name => $params) {
+            $type = $params['type'];
+            $sql .= "{$name} {$type} " . implode(' ', $params['behavior']) . ", ";
+        }
+
+        return trim($sql, ', ') . ')';
+    }
+
+    public function getDropSqlQuery()
+    {
+        $table  = $this->table;
+        $type = strtoupper($this->dropType);
+        return "DROP {$type} IF EXISTS {$table}";
     }
 
     protected function getInsertSqlQuery(): string
@@ -241,5 +416,21 @@ class QueryBuilder
         $this->currentField = null;
         $this->limit        = null;
         $this->offset       = null;
+        $this->dropType     = '';
+    }
+
+    public function getQuery(): Query
+    {
+        return new Query(
+            $this->getSql(),
+            $this->getData()
+        );
+    }
+
+    public function verifyConnection()
+    {
+        if ($this->connection === null) {
+            throw new QueryBuilderException("Connection required!");
+        }
     }
 }

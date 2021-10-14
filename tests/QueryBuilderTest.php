@@ -1,5 +1,8 @@
 <?php
 
+namespace MamadouAlySy\Tests;
+
+use MamadouAlySy\Exceptions\QueryBuilderException;
 use MamadouAlySy\QueryBuilder;
 use PHPUnit\Framework\TestCase;
 
@@ -10,8 +13,10 @@ class QueryBuilderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->queryBuilder = new QueryBuilder();
+        $this->queryBuilder = new QueryBuilder(new Connection);
+        $this->queryBuilder->drop()->table('user')->commit();
     }
+    
 
     public function testInsertQuery()
     {
@@ -21,7 +26,7 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(), 
+            $query->getSql(),
             'INSERT INTO user(`name`, `age`) VALUES(:name, :age);'
         );
     }
@@ -38,7 +43,7 @@ class QueryBuilderTest extends TestCase
 
     public function testSimpleSelectQueryWithLimitAndOffset()
     {
-       $query = $this->queryBuilder
+        $query = $this->queryBuilder
             ->from('user')
             ->limit(10)
             ->offset(5)
@@ -112,5 +117,43 @@ class QueryBuilderTest extends TestCase
                 'cid' => 1,
             ]
         );
+    }
+
+    public function testShoudThrowAnExceptionOnCommit()
+    {
+        $this->queryBuilder->setConncetion(null);
+        $this->expectException(QueryBuilderException::class);
+        $this->queryBuilder->select()->from('users')->commit();
+    }
+
+    public function testCreateQuery()
+    {
+        $query = $this->queryBuilder->create()
+            ->table('user')
+            ->field('id')->int()->notNull()->autoIncrement()
+            ->field('username')->string()->default('mamadou')
+            ->getQuery();
+
+        $this->assertEquals(
+            $query->getSql(),
+            'CREATE TABLE `user`(id INT(11) NOT NULL AUTO_INCREMENT, username VARCHAR(255) DEFAULT :username);'
+        );
+
+        $this->assertEquals(
+            $query->getParameters(),
+            ['username' => 'mamadou',]
+        );
+    }
+    public function testCanCommitQuery()
+    {
+        $process = $this->queryBuilder->create()
+            ->table('user')
+            ->field('id')->int()->notNull()->primaryKey()->autoIncrement()
+            ->field('username')->string()->notNull()
+            ->field('password')->string()->notNull()
+            ->field('status')->int(1)->notNull()->default(0)
+            ->commit();
+
+        $this->assertTrue($process);
     }
 }
