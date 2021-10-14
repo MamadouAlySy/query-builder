@@ -10,6 +10,9 @@ class QueryBuilderTest extends TestCase
 {
     protected QueryBuilder $queryBuilder;
 
+    /**
+     * @throws QueryBuilderException
+     */
     protected function setUp(): void
     {
         parent::setUp();
@@ -26,8 +29,8 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(),
-            'INSERT INTO `user`(`name`, `age`) VALUES(:name, :age);'
+            'INSERT INTO `user`(`name`, `age`) VALUES(:name, :age);',
+            $query->getSql()
         );
     }
 
@@ -39,7 +42,7 @@ class QueryBuilderTest extends TestCase
             ->everything()
             ->getQuery();
 
-        $this->assertEquals($query->getSql(), 'SELECT * FROM `user`;');
+        $this->assertEquals('SELECT * FROM `user`;', $query->getSql());
     }
 
     public function testSimpleSelectQueryWithLimitAndOffset()
@@ -51,7 +54,7 @@ class QueryBuilderTest extends TestCase
             ->select()
             ->getQuery();
 
-        $this->assertEquals($query->getSql(), 'SELECT * FROM `user` LIMIT 10 OFFSET 5;');
+        $this->assertEquals('SELECT * FROM `user` LIMIT 10 OFFSET 5;', $query->getSql());
     }
 
     public function testSelectQueryWithConditions()
@@ -64,16 +67,16 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(),
-            'SELECT * FROM `user` WHERE id > :cid OR name = :cname;'
+            'SELECT * FROM `user` WHERE id > :cid OR name = :cname;',
+            $query->getSql()
         );
 
         $this->assertEquals(
-            $query->getParameters(),
             [
                 'cid'   => 10,
                 'cname' => "Mamadou",
-            ]
+            ],
+            $query->getParameters()
         );
     }
 
@@ -86,16 +89,16 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(),
-            'UPDATE `user` SET name = :name WHERE id = :cid;'
+            'UPDATE `user` SET name = :name WHERE id = :cid;',
+            $query->getSql()
         );
 
         $this->assertEquals(
-            $query->getParameters(),
             [
                 'name' => "Mamadou",
                 'cid'  => 1,
-            ]
+            ],
+            $query->getParameters()
         );
     }
 
@@ -108,21 +111,21 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(),
-            'DELETE FROM `user` WHERE id = :cid;'
+            'DELETE FROM `user` WHERE id = :cid;',
+            $query->getSql()
         );
 
         $this->assertEquals(
-            $query->getParameters(),
             [
                 'cid' => 1,
-            ]
+            ],
+            $query->getParameters()
         );
     }
 
-    public function testShoudThrowAnExceptionOnCommit()
+    public function testShouldThrowAnExceptionOnCommit()
     {
-        $this->queryBuilder->setConncetion(null);
+        $this->queryBuilder->setConnection(null);
         $this->expectException(QueryBuilderException::class);
         $this->queryBuilder->select()->from('users')->commit();
     }
@@ -136,16 +139,19 @@ class QueryBuilderTest extends TestCase
             ->getQuery();
 
         $this->assertEquals(
-            $query->getSql(),
-            'CREATE TABLE `user`(id INT(11) NOT NULL AUTO_INCREMENT, username VARCHAR(255) DEFAULT :username);'
+            'CREATE TABLE `user`(id INT(11) NOT NULL AUTO_INCREMENT, username VARCHAR(255) DEFAULT :username);',
+            $query->getSql()
         );
 
         $this->assertEquals(
-            $query->getParameters(),
-            ['username' => 'mamadou']
+            ['username' => 'mamadou'],
+            $query->getParameters()
         );
     }
-    
+
+    /**
+     * @throws QueryBuilderException
+     */
     public function testCanCommitQuery()
     {
         $process = $this->queryBuilder->create()

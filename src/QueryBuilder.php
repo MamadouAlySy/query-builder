@@ -28,7 +28,7 @@ class QueryBuilder
         $this->connection = $connection;
     }
 
-    public function setConncetion(?ConnectionInterface $connection)
+    public function setConnection(?ConnectionInterface $connection)
     {
         $this->connection = $connection;
     }
@@ -92,27 +92,26 @@ class QueryBuilder
 
     public function text(): self
     {
-        return $this->type('text', null);
+        return $this->type('text');
     }
 
     public function date(): self
     {
-        return $this->type('date', null);
+        return $this->type('date');
     }
 
     public function datetime(): self
     {
-        return $this->type('datetime', null);
+        return $this->type('datetime');
     }
 
     public function timestamp(): self
     {
-        return $this->type('timestamp', null);
+        return $this->type('timestamp');
     }
 
     public function primaryKey(): self
     {
-        $field = $this->currentField;
         return $this->behavior("PRIMARY KEY");
     }
 
@@ -140,7 +139,7 @@ class QueryBuilder
         return $this;
     }
 
-    public function everything()
+    public function everything(): self
     {
         $this->fields = [];
 
@@ -174,7 +173,7 @@ class QueryBuilder
 
     public function from(string $table): self
     {
-        $this->table = "`{$table}`";
+        $this->table = "`$table`";
 
         return $this;
     }
@@ -268,6 +267,9 @@ class QueryBuilder
         return $this;
     }
 
+    /**
+     * @throws QueryBuilderException
+     */
     public function commit(): bool
     {
         $this->verifyConnection();
@@ -275,6 +277,9 @@ class QueryBuilder
         return $query->execute($this->getData());
     }
 
+    /**
+     * @throws QueryBuilderException
+     */
     public function get(string $class = stdClass::class, bool $one = false): array|object
     {
         $this->verifyConnection();
@@ -293,13 +298,16 @@ class QueryBuilder
         return [];
     }
 
+    /**
+     * @throws QueryBuilderException
+     */
     public function first(string $class = stdClass::class): object
     {
         return $this->get($class, true);
     }
 
 
-    public function getSql()
+    public function getSql(): string
     {
         $sql = match (true) {
             $this->type === 'create' => $this->getCreateSqlQuery(),
@@ -314,29 +322,29 @@ class QueryBuilder
         return trim($sql) . ';';
     }
 
-    public function getData()
+    public function getData(): array
     {
         return $this->data;
     }
 
-    public function getCreateSqlQuery()
+    public function getCreateSqlQuery(): string
     {
         $table  = $this->table;
-        $sql = "CREATE TABLE {$table}(";
+        $sql = "CREATE TABLE $table(";
         
         foreach ($this->fields as $name => $params) {
             $type = $params['type'];
-            $sql .= "{$name} {$type} " . implode(' ', $params['behavior']) . ", ";
+            $sql .= "$name $type " . implode(' ', $params['behavior']) . ", ";
         }
 
         return trim($sql, ', ') . ')';
     }
 
-    public function getDropSqlQuery()
+    public function getDropSqlQuery(): string
     {
         $table  = $this->table;
         $type = strtoupper($this->dropType);
-        return "DROP {$type} IF EXISTS {$table}";
+        return "DROP $type IF EXISTS $table";
     }
 
     protected function getInsertSqlQuery(): string
@@ -345,7 +353,7 @@ class QueryBuilder
         $fields = implode('`, `', $this->fields);
         $values = ':' . implode(', :', $this->fields);
 
-        return "INSERT INTO {$table}(`{$fields}`) VALUES($values)";
+        return "INSERT INTO $table(`$fields`) VALUES($values)";
     }
 
     protected function getSelectSqlQuery(): string
@@ -354,7 +362,7 @@ class QueryBuilder
         $fields     = empty($this->fields) ? '*' : implode('`, `', $this->fields);
         $conditions = $this->buildConditions();
 
-        return "SELECT {$fields} FROM {$table} {$conditions}";
+        return "SELECT $fields FROM $table $conditions";
     }
 
     protected function getUpdateSqlQuery(): string
@@ -363,13 +371,13 @@ class QueryBuilder
         $updates = '';
 
         foreach ($this->fields as $key) {
-            $updates .= "{$key} = :{$key}, ";
+            $updates .= "$key = :$key, ";
         }
 
         $updates    = rtrim($updates, ', ');
         $conditions = $this->buildConditions();
 
-        return "UPDATE {$table} SET {$updates} {$conditions}";
+        return "UPDATE $table SET $updates $conditions";
     }
 
     protected function getDeleteSqlQuery(): string
@@ -377,38 +385,34 @@ class QueryBuilder
         $table      = $this->table;
         $conditions = $this->buildConditions();
 
-        return "DELETE FROM {$table} {$conditions}";
+        return "DELETE FROM $table $conditions";
     }
 
     protected function buildConditions(): string
     {
         $sql = '';
-        // WHERE
+
         if (!empty($this->conditions)) {
-            $conditions  = $this->conditions;
             $queryString = '';
+            $conditions  = $this->conditions;
             foreach ($conditions as $field => $params) {
                 $type     = $params['condition-type'];
                 $operator = $params['operator'];
 
-                $queryString .= " {$type} {$field} {$operator} :c{$field}";
+                $queryString .= " $type $field $operator :c$field";
             }
             $queryString = trim($queryString, " AND ");
             $queryString = trim($queryString, " OR ");
 
-            $sql .= " WHERE {$queryString}";
+            $sql .= " WHERE $queryString";
         }
 
-        // GROUPING
-        // ORDER
-        // LIMIT
-        if ($this->limit != null) {
-            $sql .= ' LIMIT ' . $this->limit;
-        }
-        // OFFSET
-        if ($this->offset != null) {
-            $sql .= ' OFFSET ' . $this->offset;
-        }
+        // TODO: GROUPING
+        // TODO: ORDER
+        // TODO: LIMIT
+
+        $sql .= $this->limit ? ' LIMIT ' . $this->limit : '';
+        $sql .= $this->offset ? ' OFFSET ' . $this->offset : '';
 
         return trim($sql);
     }
@@ -432,7 +436,10 @@ class QueryBuilder
         );
     }
 
-    public function verifyConnection()
+    /**
+     * @throws QueryBuilderException
+     */
+    public function verifyConnection(): void
     {
         if ($this->connection === null) {
             throw new QueryBuilderException("Connection required!");
