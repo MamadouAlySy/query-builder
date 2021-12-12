@@ -26,7 +26,7 @@ $parameters = $query->getParameters();
 ```
 
 `NOTE:` In order to execute the query directely inside the query builder you should pass an object
-that implement the folowing interface:
+in the constructor that implement the folowing interface:
 
 `ConnectionInterface.php`:
 
