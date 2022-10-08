@@ -2,64 +2,21 @@
 
 declare(strict_types=1);
 
-namespace MamadouAlySy;
+namespace MamadouAlySy\QueryBuilder;
 
-class Query
+abstract class Query
 {
-    protected string $sql;
-    protected array $parameters;
-
-    public function __construct(string $sql, array $parameters = [])
-    {
-        $this->sql = $sql;
-        $this->parameters = $parameters;
-    }
-
     /**
-     * Get the value of parameters
-     *
-     * @return array
-     */
-    public function getParameters(): array
-    {
-        return $this->parameters;
-    }
-
-    /**
-     * Set the value of parameters
-     *
-     * @param array $parameters
-     *
-     * @return self
-     */
-    public function setParameters(array $parameters): self
-    {
-        $this->parameters = $parameters;
-
-        return $this;
-    }
-
-    /**
-     * Get the value of sql
+     * Returns the query sql
      *
      * @return string
      */
-    public function getSql(): string
-    {
-        return $this->sql;
-    }
+    abstract public function getSql(): string;
 
     /**
-     * Set the value of sql
+     * Returns the query parameters
      *
-     * @param string $sql
-     *
-     * @return self
+     * @return array
      */
-    public function setSql(string $sql): self
-    {
-        $this->sql = $sql;
-
-        return $this;
-    }
+    abstract public function getParameters(): array;
 }

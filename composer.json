@@ -12,12 +12,12 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "MamadouAlySy\\": "src/"
+            "MamadouAlySy\\QueryBuilder\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "MamadouAlySy\\Tests\\": "tests/"
+            "MamadouAlySy\\QueryBuilder\\Tests\\": "tests/"
         }
     },
     "authors": [
