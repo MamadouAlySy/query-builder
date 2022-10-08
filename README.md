@@ -25,8 +25,8 @@ $sql = $query->getSql();
 $parameters = $query->getParameters();
 ```
 
-`NOTE:` In order to execute the query directely inside the query builder you should pass an object
-in the constructor that implement the folowing interface:
+`NOTE:` In order to execute the query directly inside the query builder you should pass an object
+in the constructor that implement the following interface:
 
 `ConnectionInterface.php`:
 
@@ -43,15 +43,15 @@ interface ConnectionInterface
 
 after that you can use `get, first, commit` methods to execute queries.
 - `commit()` execute a query without result
-- `first()` execute a query and get on result
+- `first()` execute a query and get one result
 - `get()` execute a query and get all result
 
 ```PHP
 <?php
 
-// Create the user atble
+// Create the user table
 $queryBuilder->create()
-    ->table('user')
+    ->table('users')
     ->field('id')->int()->notNull()->autoIncrement()
     ->field('username')->string()->default('mamadou')
     ->commit();
